@@ -23,12 +23,17 @@ def moving_average(x, n, type='simple'):
     if type == 'simple':
         weights = np.ones(n)
     else:
-        weights = np.exp(np.linspace(-1., 0., n))
+        weights = np.exp(np.linspace(0., -1., n))  # Note how the convolution operator flips the second array
+                                                   # before "sliding" the two across one another
 
     weights /= weights.sum()
 
     a = np.convolve(x, weights, mode='full')[:len(x)]
-    a[:n] = a[n]
+    a[:n - 1] = a[n - 1]  # a[n - 1], or the (n)th element is already without boundary effects
+    # or set:
+    # a[:n - 1] = None
+    # to be filled when data of previous period are loaded
+
     return a
 
 
@@ -40,14 +45,17 @@ def relative_strength(prices, n=14):
     """
 
     deltas = np.diff(prices)
-    seed = deltas[:n + 1]
+    seed = deltas[:n]  # not deltas[:n + 1]
     up = seed[seed >= 0].sum() / n
     down = -seed[seed < 0].sum() / n
     rs = up / down
     rsi = np.zeros_like(prices)
-    rsi[:n] = 100. - 100. / (1. + rs)
+    rsi[:n + 1] = 100. - 100. / (1. + rs)  # rsi[n], the (n+1)th is the first defined element of rsi
+    # or the following is recommended
+    # rsi[n] = 100. - 100. / (1. + rs)
+    # rsi[:n] = None
 
-    for i in range(n, len(prices)):
+    for i in range(n + 1, len(prices)):
         delta = deltas[i - 1]  # cause the diff is 1 shorter
 
         if delta > 0:
